@@ -1,102 +1,231 @@
-# Project Aegis – Zero-Trust Secrets Management
+# Project Aegis - Secrets Management & Vault Platform
 
-Project Aegis delivers a production-grade secrets platform built on FastAPI, PostgreSQL, HashiCorp Vault, and a React + Tailwind operations console. It enforces Zero-Trust principles, tamper-proof auditing, dynamic leasing, and real-time situational awareness.
+A comprehensive secrets management platform built with FastAPI and React, featuring HashiCorp Vault integration, tamper-proof audit logging, dynamic secret leasing, and real-time monitoring.
+
+## Overview
+
+Project Aegis provides enterprise-grade secrets management with advanced security features including zero-trust architecture, role-based access control, multi-factor authentication, and cryptographic key management. The platform ensures that all sensitive data is encrypted, securely stored, and audited for compliance.
+
+## Key Features
+
+### Security & Access Control
+- **Multi-Factor Authentication (MFA)**: TOTP-based 2FA for enhanced user security
+- **Role-Based Access Control (RBAC)**: Admin, Security Officer, and Auditor roles
+- **JWT Token Management**: Secure session handling with access and refresh tokens
+- **Device Fingerprinting**: Track and authenticate user devices
+
+### Secrets Management
+- **Dynamic Leasing**: Automatically expire secrets with configurable TTLs
+- **Envelope Encryption**: Vault Transit integration for encryption
+- **Secret Storage**: Secure database storage with encryption
+- **View Leases**: Time-limited plaintext access with countdown timers
+
+### Vault Operations
+- **Shamir Key Sharing**: Distribute master key into 5 fragments, require 3 to unseal
+- **Multi-step Initialization**: Secure initialization ritual with distributed shares
+- **Panic Mode**: Emergency seal with lease revocation
+- **Cold Start Guard**: Sealed vault returns 503 for all operations except login/unseal
+
+### Audit & Monitoring
+- **Hash-Chained Logging**: Tamper-proof audit trail with SHA-256 verification
+- **Real-time Alerts**: WebSocket streaming of security events
+- **Access Tracking**: Monitor user actions and secret access patterns
+- **Rate Limiting**: Redis-backed brute-force protection
+
+### Dashboard UI
+- Vault status visualization
+- Secret management interface
+- Audit timeline with detailed logs
+- Access control management
+- Live alert feed
+- Lease velocity charts
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Backend** | FastAPI, SQLAlchemy ORM, Celery, Alembic migrations |
+| **Database** | PostgreSQL (production) / SQLite (dev) |
+| **Frontend** | React 18+, TypeScript, Vite, Tailwind CSS |
+| **Caching/Queue** | Redis, Celery workers |
+| **Security** | HashiCorp Vault, Passlib (bcrypt), PyOTP |
+| **Real-time** | WebSockets for audit/alerts/vault status |
+| **Deployment** | Docker & Docker Compose |
 
 ## Architecture
 
 ```
-project-root
-├─ backend/                # FastAPI, SQLAlchemy, Celery, Redis adapters
-│  ├─ auth/                # JWT, MFA, RBAC endpoints
-│  ├─ vault/               # Shamir sharing + Vault orchestration
-│  ├─ secrets/             # Static storage + dynamic leasing services
-│  ├─ audit/               # Hash-chained logging + verification
-│  ├─ alerts/              # Alert retrieval + streaming
-│  ├─ services/            # Crypto, events, rate limiting helpers
-│  ├─ models/              # ORM entities and Alembic migrations
-│  └─ main.py              # FastAPI app + WebSocket hubs
-├─ frontend/               # Vite + React admin dashboard
-│  ├─ components/          # Cards, charts, tables, Vault UI
-│  ├─ pages/               # Dashboard, Secrets, Audit, Access, Vault
-│  └─ services/            # Axios + WebSocket helpers
-├─ docker-compose.yml      # API, worker, frontend, db, redis, vault services
-└─ .env.example            # Reference configuration
+Project Aegis
+├── Backend (FastAPI)
+│   ├── /auth          - Login, MFA, JWT token management
+│   ├── /vault         - Vault initialization, unsealing, status
+│   ├── /secrets       - Secret CRUD, leasing, encryption
+│   ├── /audit         - Audit log retrieval, verification
+│   ├── /alerts        - Alert streaming and notifications
+│   └── /services      - Crypto, rate limiting, event handlers
+│
+├── Frontend (React)
+│   ├── Dashboard      - Vault & system overview
+│   ├── Secrets Manager - Create, view, manage secrets
+│   ├── Audit Trail    - View and verify audit logs
+│   ├── Access Control - Manage user roles and permissions
+│   └── Vault Control  - Initialize, unseal, seal vault
+│
+├── Core Services
+│   ├── PostgreSQL     - Persistent data storage
+│   ├── Redis          - Caching, rate limiting, session state
+│   ├── Vault          - Key management & encryption
+│   └── Celery         - Asynchronous task processing
 ```
-
-## Key Capabilities
-
-- **Shamir-based Vault Governance**: Initialize, split master key into 5 fragments, require 3 to unseal, expose live progress UI, and panic mode to revoke leases + seal immediately.
-- **Cold Start Guard**: While sealed, every endpoint (except login + unseal) returns `503 Vault Sealed`, and WebSockets refuse connections until three Redis-tracked fragments arrive within the five-minute TTL.
-- **Layered Security**: JWT access tokens, short-lived refresh tokens, TOTP MFA, RBAC roles (Admin, Security Officer, Auditor), device fingerprinting, Redis rate limiting, and brute-force alerts.
-- **Secrets Lifecycle**: Vault Transit performs envelope encryption, Redis-backed "view" leases return plaintext with a 900-second countdown, and UI purges secrets the instant the timer expires.
-- **Immutable Auditing**: Each log commits `SHA-256(prev_hash + payload)` to enforce tamper detection; streaming WebSockets feed dashboards and trigger alerts if the chain breaks.
-- **Fail-safe Auto Seal**: Rate-limit breaches or a broken hash-chain trigger an automatic seal (local + remote), broadcast alerts, and force admins through the unseal ritual again.
-- **Situational Awareness**: React dashboard visualizes vault status, live alerts, lease velocity (Recharts), audit timeline, and access governance with responsive, dark-themed UI.
-- **Deployment Ready**: Dockerized backend, worker, frontend, Postgres, Redis, and Vault. Alembic migrations included. Websocket endpoints exposed for audit, vault, and alerts channels.
 
 ## Prerequisites
 
-- Docker / Docker Compose
-- Node.js 20+ (if running frontend locally)
-- Python 3.11+ (if running backend manually)
+- **Docker & Docker Compose** (for containerized deployment)
+- **Node.js 18+** (for frontend development)
+- **Python 3.11+** (for backend development)
+- **PostgreSQL 13+** (for production database)
 
-## Quick Start with Docker
+## Quick Start
 
-1. Copy environment template and adjust secrets:
-   ```bash
-   cp .env.example .env
-   ```
-2. Build and launch the stack:
-   ```bash
-   docker compose up --build
-   ```
-3. Apply database migrations once the API container is healthy:
-   ```bash
-   docker compose exec api alembic upgrade head
-   ```
-4. Access services:
-   - API docs: http://localhost:8000/docs
-   - Frontend UI: http://localhost:5173
-   - Vault (dev mode): http://localhost:8200 (token from `.env`)
+### Using Docker Compose (Recommended)
 
-## Manual Backend Setup
+```bash
+# 1. Clone and configure environment
+cp .env.example .env
+# Edit .env with your settings if needed
+
+# 2. Build and start all services
+docker compose up --build
+
+# 3. Run database migrations
+docker compose exec api alembic upgrade head
+
+# 4. Create admin user (optional)
+docker compose exec api python backend/scripts/create_admin.py
+```
+
+**Access the application:**
+- Frontend UI: http://localhost:5173
+- API Docs: http://localhost:8000/docs
+- Vault UI: http://localhost:8200 (token in .env)
+
+### Manual Backend Setup
 
 ```bash
 cd backend
-python -m venv .venv && .venv\Scripts\activate  # Windows
+
+# Create and activate virtual environment
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # Unix/macOS
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run migrations
 alembic upgrade head
+
+# Start the server
 uvicorn backend.main:app --reload
 ```
 
-Set `DATABASE_URL` to Postgres or leave the default SQLite path for lightweight testing.
+The API will be available at http://localhost:8000
 
-## Manual Frontend Setup
+### Manual Frontend Setup
 
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-Set `VITE_API_URL`/`VITE_WS_URL` in a `.env` file (Vite automatically loads `import.meta.env`).
+The UI will be available at http://localhost:5173
+
+## Configuration
+
+Create a `.env` file in the project root (copy from `.env.example`):
+
+```env
+# Database
+DATABASE_URL=postgresql://user:password@localhost/aegis
+
+# Vault
+VAULT_ADDR=http://localhost:8200
+VAULT_TOKEN=your-token-here
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# JWT
+SECRET_KEY=your-secret-key-here
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+
+# MFA
+TOTP_ISSUER=ProjectAegis
+
+# Secrets
+UNSEAL_SHARE_TTL_SECONDS=300
+SECRET_VIEW_LEASE_TTL_SECONDS=900
+```
 
 ## Operating the Vault
 
-1. **Initialize Shares**: `POST /api/vault/init` (Admin role). Securely distribute the returned 5 fragments.
-2. **Unseal**: Submit 3 unique fragments via `POST /api/vault/unseal`. The UI displays progress `n/3`.
-3. **Seal**: `POST /api/vault/seal` or press the UI button.
-4. **Panic Mode**: `POST /api/vault/panic` revokes all active leases and reseals immediately.
+### Initialize Vault
+```
+POST /api/vault/init
+```
+Returns 5 key fragments. Distribute securely to 5 different admins.
 
-> The dev Vault container runs in -dev mode for simplicity. For production, switch to HA Vault, disable dev flags, and store master shares offline.
-> Unseal fragments live in Redis for `UNSEAL_SHARE_TTL_SECONDS` seconds. If the TTL lapses before `k` admins respond, the ritual must restart.
+### Unseal Vault
+```
+POST /api/vault/unseal
+Body: { "share": "fragment-1" }
+```
+Repeat with 3 unique fragments. UI shows progress (3/3).
 
-## Security Notes
+### Seal Vault
+```
+POST /api/vault/seal
+```
+Locks the vault, requiring unseal ritual to access secrets.
 
-- Passwords are hashed with bcrypt via Passlib, MFA enforced with TOTP (pyotp), and JWTs expire in 15 minutes by default.
-- Redis-backed rate limiting locks out abusive IPs and device fingerprints.
-- Access events + failed logins generate alert records and stream via WebSockets for instant visualization.
-- Vault Transit wraps every stored secret; rotate `VAULT_TRANSIT_KEY` periodically and rewrap ciphertexts via the Vault CLI/API.
+### Panic Mode
+```
+POST /api/vault/panic
+```
+Emergency operation: revokes all active leases and immediately seals the vault.
+
+## Security Features
+
+- **Encryption at Rest**: Vault Transit encrypts all stored secrets
+- **TLS/HTTPS**: Secure communication between services
+- **Rate Limiting**: Redis-backed protection against brute-force attacks
+- **Audit Logging**: Immutable hash-chained logs with tamper detection
+- **MFA Enforcement**: TOTP tokens required for privileged operations
+- **Session Management**: Secure JWT tokens with expiration
+- **Device Tracking**: Fingerprint-based device identification
+
+## Project Status
+
+- ✅ Core secrets management
+- ✅ Vault integration
+- ✅ Audit logging
+- ✅ MFA & RBAC
+- ✅ Real-time alerts
+- ✅ Docker deployment
+- ✅ React dashboard
+
+## Support & Contributing
+
+For issues, feature requests, or contributions, please open an issue on the project repository.
+
+## License
+
+Project Aegis is provided as-is for educational and enterprise use.
 
 ## API Surface
 
